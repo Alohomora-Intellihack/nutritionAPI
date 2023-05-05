@@ -1,0 +1,8 @@
+flask
+flask_cors
+pandas
+pillow
+requests
+pickle5
+roboflow
+scikit-learn
