@@ -8,6 +8,8 @@ import pandas as pd
 import pickle
 from get_nutritional_values import get_nutritional_values
 from roboflow import Roboflow
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+import numpy as np
 
 # Set up the Flask app
 app = Flask(__name__)
@@ -16,6 +18,12 @@ CORS(app)
 # Load the trained linear regression model
 with open('linear_regression_model.pkl', 'rb') as file:
     linear_regression_model = pickle.load(file)
+
+
+# Load the trained model and scaler
+vector = pickle.load(open('model.pkl', 'rb'))
+scaler = pickle.load(open('scaler.pkl', 'rb'))
+
 
 # Import the Roboflow model and predict function from the second code block
 from roboflow import Roboflow
@@ -63,6 +71,27 @@ def predict():
     # Convert the prediction to a JSON response
     response = {'prediction': prediction[0]}
 
+    return jsonify(response)
+
+
+@app.route('/calories', methods=['POST'])
+def calories():
+    # Get the input data as a JSON object
+    data = request.get_json()
+
+    # Convert categorical variable Gender to numerical using label encoding
+    le = LabelEncoder()
+    data['Gender'] = le.fit_transform([data['Gender']])[0]
+
+    # Preprocess the input data
+    X = np.array([[data['Gender'], data['Age'], data['Height'], data['Weight'], data['Duration']]])
+    X[:, 2:4] = scaler.transform(X[:, 2:4])
+
+    # Make predictions using the model
+    y_pred = vector.predict(X)[0]
+
+    # Return the predictions as a JSON object
+    response = {'Calories': round(float(y_pred), 2)}
     return jsonify(response)
 
 # Run the Flask app
