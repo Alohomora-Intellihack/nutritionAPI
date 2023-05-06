@@ -24,6 +24,18 @@ with open('linear_regression_model.pkl', 'rb') as file:
 vector = pickle.load(open('model.pkl', 'rb'))
 scaler = pickle.load(open('scaler.pkl', 'rb'))
 
+# Load encoders and model
+with open("encoder.pkl", "rb") as f:
+    encoder = pickle.load(f)
+
+with open("label_encoder.pkl", "rb") as f:
+    label_encoder = pickle.load(f)
+
+with open("rfc_model.pkl", "rb") as f:
+    rfc = pickle.load(f)
+
+
+
 
 # Import the Roboflow model and predict function from the second code block
 from roboflow import Roboflow
@@ -92,6 +104,29 @@ def calories():
 
     # Return the predictions as a JSON object
     response = {'Calories': round(float(y_pred), 2)}
+    return jsonify(response)
+
+
+@app.route("/recommend", methods=["POST"])
+def recommend():
+    print("start prediction")
+    input_data = request.json
+    new_data = pd.DataFrame(input_data)
+
+    # Apply one-hot encoding to the new data
+    new_data_encoded = encoder.transform(new_data)
+    # Predict the encoded y values using the trained model
+    y_pred = rfc.predict_proba(new_data_encoded)
+
+    top_3 = np.argpartition(y_pred, -10, axis=1)[:, -10:]
+
+    # Decode the predicted labels back to their original values
+    pred_labels = label_encoder.inverse_transform(top_3.reshape(-1, 1))
+
+    response = {
+        "predictions": pred_labels.tolist()
+    }
+
     return jsonify(response)
 
 # Run the Flask app
