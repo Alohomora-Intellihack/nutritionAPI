@@ -10,6 +10,7 @@ from get_nutritional_values import get_nutritional_values
 from roboflow import Roboflow
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import numpy as np
+import random
 
 # Set up the Flask app
 app = Flask(__name__)
@@ -18,6 +19,34 @@ CORS(app)
 # Load the trained linear regression model
 with open('linear_regression_model.pkl', 'rb') as file:
     linear_regression_model = pickle.load(file)
+
+days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+
+def generate_workout_schedule(level, workouts):
+    print(level, workouts)
+    workouts = workouts.tolist()
+    print(type(workouts))
+    workout_dict = {}
+
+    if level == "Beginner":
+        num_exercises_per_day = 5
+        workout_dict['Monday'] = random.sample(workouts, num_exercises_per_day)
+        workout_dict['Wednesday'] = random.sample(workouts, num_exercises_per_day)
+        workout_dict['Friday'] = random.sample(workouts, num_exercises_per_day)
+    elif level == "Intermediate":
+        num_exercises_per_day = 8
+        workout_dict['Monday'] = random.sample(workouts, num_exercises_per_day)
+        workout_dict['Tuesday'] = random.sample(workouts, num_exercises_per_day)
+        workout_dict['Thursday'] = random.sample(workouts, num_exercises_per_day)
+        workout_dict['Friday'] = random.sample(workouts, num_exercises_per_day)
+    elif level == "Advanced":
+        num_exercises_per_day = 10
+        for day in days[:5]:
+            workout_dict[day] = random.sample(workouts, num_exercises_per_day)
+
+    print(workout_dict)
+    return workout_dict
 
 
 # Load the trained model and scaler
@@ -136,13 +165,16 @@ def recommend():
     # Predict the encoded y values using the trained model
     y_pred = rfc.predict_proba(new_data_encoded)
 
-    top_3 = np.argpartition(y_pred, -10, axis=1)[:, -10:]
+    top_10 = np.argpartition(y_pred, -10, axis=1)[:, -10:]
 
     # Decode the predicted labels back to their original values
-    pred_labels = label_encoder.inverse_transform(top_3.reshape(-1, 1))
+    pred_labels = label_encoder.inverse_transform(top_10.reshape(-1, 1))
+    pred_workouts = [label[0] for label in pred_labels.tolist()]
+
+    workout_schedule = generate_workout_schedule(input_data['Level'][0], pred_labels)
 
     response = {
-        "predictions": pred_labels.tolist()
+        "workout_schedule": workout_schedule
     }
 
     return jsonify(response)
