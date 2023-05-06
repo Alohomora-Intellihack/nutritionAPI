@@ -69,6 +69,24 @@ def get_nutrients_from_image():
     # Return the nutritional values as JSON
     return jsonify(nutrients)
 
+@app.route('/api/text', methods=['POST'])
+def get_nutrients_from_name():
+    data = request.get_json()
+
+    if 'food_name' not in data:
+        return jsonify({'error': 'No food name provided'}), 400
+
+    food_name = data['food_name']
+
+    # Get the nutritional values for the food name
+    nutrients = get_nutritional_values(food_name)
+
+    if not nutrients:
+        return jsonify({'error': 'Nutritional values not found for the given food name'}), 404
+
+    # Return the nutritional values as JSON
+    return jsonify(nutrients)
+
 @app.route('/predict', methods=['POST'])
 def predict():
     # Get the input data from the request
